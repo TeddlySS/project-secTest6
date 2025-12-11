@@ -277,10 +277,10 @@ window.checkFlag = async function(shortId) {
     }
 };
 
-// --- 3.2 HINT SYSTEM (MERGED: DATABASE + CHALLENGE1 UI) ---
+// --- 3.2 HINT SYSTEM (HTML-BASED WITH DB TRACKING) ---
 
 // ============================================
-// 3.2 HINT SYSTEM (Fixed Logic: 10pts, Sequential, DB Sync)
+// 3.2 HINT SYSTEM (Fixed Logic: 10pts per hint, Sequential, DB Sync)
 // ============================================
 
 // ตัวแปรสำหรับเก็บ Callback ของ Dialog
@@ -326,19 +326,8 @@ window.toggleHint = async function(hintId) {
     }
 
     try {
-        // 3. ตรวจสอบ Hint ปัจจุบันใน DB (เพื่อเอา hint_id)
-        const { data: currentHintData, error: hintError } = await supabase
-            .from('hints')
-            .select('hint_id, order_index')
-            .eq('challenge_id', dbChallenge.challenge_id)
-            .eq('order_index', hintNumber)
-            .single();
-
-        if (hintError || !currentHintData) {
-            console.error("Hint data not found:", hintError);
-            hintEl.style.display = 'block'; // Fallback
-            return;
-        }
+        // 3. สร้าง composite hint_id จาก challenge_id + hint_number (ไม่ต้องดึงจาก hints table)
+        const compositeHintId = `${dbChallenge.challenge_id}_hint_${hintNumber}`;
 
         // 4. เช็คประวัติ: User เคยเปิด Hint นี้ไปแล้วหรือยัง?
         const { data: usedHint } = await supabase
@@ -346,49 +335,42 @@ window.toggleHint = async function(hintId) {
             .select('*')
             .eq('user_id', currentUser.user_id)
             .eq('challenge_id', dbChallenge.challenge_id)
-            .eq('hint_id', currentHintData.hint_id)
+            .eq('hint_id', compositeHintId)
             .maybeSingle();
 
         // --- กรณี: เคยใช้แล้ว (เปิดเลย ไม่หักคะแนนเพิ่ม) ---
         if (usedHint) {
             hintEl.style.display = 'block';
+            showNotification(`💡 Hint ${hintNumber} (ใช้ไปแล้ว)`, 'info');
             return;
         }
 
         // --- กรณี: ยังไม่เคยใช้ (ต้องตรวจสอบลำดับก่อน) ---
-        
+
         // 5. Sequential Check: ถ้าไม่ใช่ Hint ที่ 1 ต้องเช็คว่าเปิด Hint ก่อนหน้าหรือยัง
         if (hintNumber > 1) {
-            // หา hint_id ของ hint ก่อนหน้า
-            const { data: prevHintData } = await supabase
-                .from('hints')
-                .select('hint_id')
+            const prevCompositeHintId = `${dbChallenge.challenge_id}_hint_${hintNumber - 1}`;
+
+            const { data: isPrevUsed } = await supabase
+                .from('user_hints')
+                .select('id')
+                .eq('user_id', currentUser.user_id)
                 .eq('challenge_id', dbChallenge.challenge_id)
-                .eq('order_index', hintNumber - 1)
-                .single();
+                .eq('hint_id', prevCompositeHintId)
+                .maybeSingle();
 
-            if (prevHintData) {
-                // เช็คว่า user มี record ของ hint ก่อนหน้าไหม
-                const { data: isPrevUsed } = await supabase
-                    .from('user_hints')
-                    .select('id')
-                    .eq('user_id', currentUser.user_id)
-                    .eq('hint_id', prevHintData.hint_id)
-                    .maybeSingle();
-
-                if (!isPrevUsed) {
-                    showNotification(`🔒 กรุณาเปิด Hint ${hintNumber - 1} ก่อน`, 'error');
-                    return; // ห้ามเปิดข้ามลำดับ
-                }
+            if (!isPrevUsed) {
+                showNotification(`🔒 กรุณาเปิด Hint ${hintNumber - 1} ก่อน`, 'error');
+                return; // ห้ามเปิดข้ามลำดับ
             }
         }
 
-        // 6. แจ้งเตือนหักคะแนน (10 คะแนน ตาม requirement)
-        const penalty = 10; 
+        // 6. แจ้งเตือนหักคะแนน (10 คะแนนต่อ Hint)
+        const penalty = HINT_PENALTY;
 
-        showHintConfirmation(hintId, hintNumber, penalty, async () => {
+        showHintConfirmation(hintId, hintNumber, penalty, dbChallenge, async () => {
             // เมื่อกดยืนยันใน Modal
-            
+
             // เปิด UI ทันที
             hintEl.style.display = 'block';
 
@@ -398,19 +380,22 @@ window.toggleHint = async function(hintId) {
                 .insert({
                     user_id: currentUser.user_id,
                     challenge_id: dbChallenge.challenge_id,
-                    hint_id: currentHintData.hint_id,
+                    hint_id: compositeHintId,
                     used_at: new Date().toISOString()
                 });
-            
+
             if (insertError) {
                 console.error("Error logging hint:", insertError);
-                showNotification('เกิดข้อผิดพลาดในการบันทึก Hint', 'error');
+                showNotification('⚠️ เกิดข้อผิดพลาดในการบันทึก Hint', 'error');
             } else {
-                showNotification(`เปิด Hint สำเร็จ (-${penalty} คะแนน)`, 'warning');
-                
+                showNotification(
+                    `💡 เปิด Hint ${hintNumber} สำเร็จ! หักคะแนน ${penalty} คะแนนเมื่อส่งคำตอบ`,
+                    'warning'
+                );
+
                 // อัปเดต UI คะแนน (ถ้ามีฟังก์ชันนี้)
                 if (typeof updatePointsDisplay === 'function') {
-                    updatePointsDisplay(); 
+                    updatePointsDisplay();
                 }
             }
         });
@@ -422,44 +407,56 @@ window.toggleHint = async function(hintId) {
 };
 
 // ฟังก์ชันแสดง Modal ยืนยัน (UI)
-window.showHintConfirmation = function(hintId, hintNumber, pointDeduction, onConfirm) {
+window.showHintConfirmation = function(hintId, hintNumber, pointDeduction, dbChallenge, onConfirm) {
     const existingDialog = document.querySelector('.confirm-overlay');
     if (existingDialog) existingDialog.remove();
 
     const confirmDialog = document.createElement('div');
     confirmDialog.className = 'confirm-overlay';
-    
+
+    const baseScore = dbChallenge.score_base || 100;
+
     confirmDialog.innerHTML = `
         <div class="confirm-dialog" style="border-color: var(--warning);">
             <h3 style="color: var(--warning); margin-bottom: 1rem;">
                 ⚠️ ยืนยันการเปิด Hint ${hintNumber}
             </h3>
-            
-            <div style="background: rgba(255, 170, 0, 0.1); border: 1px solid var(--warning); 
+
+            <div style="background: rgba(255, 170, 0, 0.1); border: 1px solid var(--warning);
                         border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
                 <p style="margin:0; font-size: 1.1rem; color: var(--light);">
-                    การเปิดคำใบ้นี้จะถูกหัก <strong style="color: var(--danger);">${pointDeduction} คะแนน</strong>
+                    การเปิด Hint นี้จะถูก <strong style="color: var(--danger);">หัก ${pointDeduction} คะแนน</strong>
+                </p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.95rem; color: var(--gray);">
+                    📊 Base Score: ${baseScore} คะแนน<br>
+                    💡 Hint ที่ใช้: ${hintNumber} ข้อ × ${pointDeduction} คะแนน
                 </p>
             </div>
-            
-            <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                คะแนนจะถูกหักออกจากคะแนนเต็มของโจทย์ข้อนี้เมื่อคุณส่งคำตอบ
-            </p>
-            
+
+            <div style="background: rgba(0, 170, 255, 0.1); border: 1px solid var(--info);
+                        border-radius: 8px; padding: 0.8rem; margin-bottom: 1rem;">
+                <p style="margin:0; font-size: 0.9rem; color: var(--info);">
+                    ℹ️ <strong>หมายเหตุ:</strong><br>
+                    • คะแนนจะถูกหักจากคะแนนเต็ม (${baseScore}) เมื่อคุณส่งคำตอบถูก<br>
+                    • Hint ที่ใช้ไปแล้วจะไม่หักคะแนนซ้ำ<br>
+                    • ต้องเปิด Hint ตามลำดับ (1 → 2 → 3)
+                </p>
+            </div>
+
             <div class="confirm-buttons">
                 <button class="btn-cancel" onclick="closeHintConfirmDialog()">
-                    ยกเลิก
+                    ❌ ยกเลิก
                 </button>
                 <button class="btn-confirm" onclick="confirmHint()" style="background: linear-gradient(135deg, var(--warning) 0%, #ff8800 100%); border-color: var(--warning);">
-                    ยืนยัน (-${pointDeduction})
+                    ✅ ยืนยัน (-${pointDeduction} คะแนน)
                 </button>
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(confirmDialog);
     window.hintConfirmCallback = onConfirm;
-    
+
     setTimeout(() => confirmDialog.classList.add('show'), 10);
 };
 
