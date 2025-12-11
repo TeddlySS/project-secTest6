@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup Username - secXplore</title>
+  <link rel="stylesheet" href="login.css" />
+  <style>
+    .setup-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .setup-box {
+      background: rgba(10, 14, 39, 0.95);
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      border-radius: 16px;
+      padding: 3rem 2.5rem;
+      box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .welcome-section {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    }
+
+    .welcome-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .welcome-title {
+      color: var(--primary);
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome-subtitle {
+      color: var(--light);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome-email {
+      color: var(--primary);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .setup-form {
+      margin-top: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      color: var(--light);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .form-label .required {
+      color: #ff4444;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      border-radius: 8px;
+      color: var(--light);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .form-hint {
+      color: var(--gray);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .username-status {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .username-status.checking {
+      display: block;
+      background: rgba(255, 193, 7, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      color: #ffc107;
+    }
+
+    .username-status.available {
+      display: block;
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #4caf50;
+    }
+
+    .username-status.taken {
+      display: block;
+      background: rgba(244, 67, 54, 0.1);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      color: #f44336;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--dark);
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 1.5rem;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .info-box {
+      background: rgba(0, 212, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .info-title {
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-list {
+      color: var(--gray);
+      font-size: 0.85rem;
+      list-style: none;
+      padding: 0;
+    }
+
+    .info-list li {
+      padding: 0.25rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .info-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .error-message {
+      background: rgba(244, 67, 54, 0.1);
+      border: 1px solid #f44336;
+      border-radius: 8px;
+      padding: 1rem;
+      color: #f44336;
+      margin-top: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+  
+  <div class="setup-container">
+    <div class="setup-box">
+      <div class="welcome-section">
+        <div class="welcome-icon">🎉</div>
+        <h1 class="welcome-title">ยินดีต้อนรับ!</h1>
+        <p class="welcome-subtitle">เข้าสู่ระบบด้วย Google สำเร็จ</p>
+        <p class="welcome-email" id="userEmail"></p>
+      </div>
+
+      <form class="setup-form" id="usernameForm">
+        <div class="form-group">
+          <label class="form-label" for="username">
+            เลือก Username <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="username" 
+            class="form-input" 
+            placeholder="username" 
+            autocomplete="off"
+            required
+            pattern="^[a-zA-Z0-9_]{3,20}$"
+            minlength="3"
+            maxlength="20"
+          />
+          <div class="form-hint">
+            Username จะใช้แสดงในระบบและไม่สามารถเปลี่ยนแปลงได้
+          </div>
+          <div class="username-status" id="usernameStatus"></div>
+        </div>
+
+        <div class="info-box">
+          <div class="info-title">📋 ข้อกำหนด Username:</div>
+          <ul class="info-list">
+            <li>ความยาว 3-20 ตัวอักษร</li>
+            <li>ใช้ได้เฉพาะ a-z, A-Z, 0-9, และ _ (underscore)</li>
+            <li>ไม่สามารถเปลี่ยนแปลงได้ในภายหลัง</li>
+            <li>ต้องไม่ซ้ำกับผู้ใช้คนอื่น</li>
+          </ul>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <button type="submit" class="submit-btn" id="submitBtn" disabled>
+          ยืนยัน Username
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="username-setup.js"></script>
+</body>
+</html>

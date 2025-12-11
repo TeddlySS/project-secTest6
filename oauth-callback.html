@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Processing Login - secXplore</title>
+  <link rel="stylesheet" href="login.css" />
+  <style>
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(0, 212, 255, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 2rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--light);
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-subtext {
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    .error-container {
+      background: rgba(255, 68, 68, 0.1);
+      border: 2px solid #ff4444;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      margin: 2rem auto;
+    }
+
+    .error-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .error-title {
+      color: #ff4444;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .error-message {
+      color: var(--light);
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-error {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--dark);
+      border: none;
+      padding: 0.8rem 2rem;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-error:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+  
+  <div class="loading-container" id="loadingContainer">
+    <div class="spinner"></div>
+    <div class="loading-text">กำลังเข้าสู่ระบบ...</div>
+    <div class="loading-subtext">โปรดรอสักครู่</div>
+  </div>
+
+  <div class="error-container" id="errorContainer" style="display: none;">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">เกิดข้อผิดพลาด</div>
+    <div class="error-message" id="errorMessage"></div>
+    <a href="login.html" class="btn-error">กลับไปหน้า Login</a>
+  </div>
+
+  <script type="module" src="oauth-callback.js"></script>
+</body>
+</html>
